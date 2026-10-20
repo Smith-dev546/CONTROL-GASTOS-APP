@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Control de Gastos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Control de gastos</h1>
+    <section class="resumen" aria-label="Balance general">
+      <div class="resumen__item resumen__item--balance">
+        <span class="resumen__label">Balance total</span>
+        <strong id="resumen-balance">$0.00</strong>
+      </div>
+      <div class="resumen__item">
+        <span class="resumen__label">Ingresos totales</span>
+        <strong id="resumen-ingresos" class="es-ingreso">$0.00</strong>
+      </div>
+      <div class="resumen__item">
+        <span class="resumen__label">Gastos totales</span>
+        <strong id="resumen-gastos" class="es-gasto">$0.00</strong>
+      </div>
+    </section>
+  </header>
+
+  <div class="contenedor">
+    <div id="alerta-presupuesto" class="banner" role="alert" hidden></div>
+
+    <nav class="tabs" role="tablist" aria-label="Secciones de la aplicación">
+      <button role="tab" id="tab-movimientos" aria-controls="panel-movimientos" aria-selected="true" class="tab">Movimientos</button>
+      <button role="tab" id="tab-presupuestos" aria-controls="panel-presupuestos" aria-selected="false" tabindex="-1" class="tab">Presupuestos</button>
+      <button role="tab" id="tab-resumen" aria-controls="panel-resumen" aria-selected="false" tabindex="-1" class="tab">Resumen mensual</button>
+    </nav>
+
+    <main>
+      <!-- ===== Movimientos ===== -->
+      <div id="panel-movimientos" role="tabpanel" aria-labelledby="tab-movimientos" class="layout">
+        <section class="panel panel--form" aria-labelledby="form-titulo">
+          <h2 id="form-titulo">Nuevo movimiento</h2>
+          <form id="form-movimiento" novalidate>
+            <fieldset class="tipo">
+              <legend>Tipo</legend>
+              <label class="tipo__op"><input type="radio" name="tipo" value="gasto" checked /><span>Gasto</span></label>
+              <label class="tipo__op"><input type="radio" name="tipo" value="ingreso" /><span>Ingreso</span></label>
+            </fieldset>
+
+            <div class="campo">
+              <label for="monto">Monto (USD)</label>
+              <input id="monto" name="monto" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0.00" />
+              <small class="error" data-error="monto"></small>
+            </div>
+
+            <div class="campo">
+              <label for="categoria">Categoría</label>
+              <select id="categoria" name="categoria"></select>
+              <small class="error" data-error="categoria"></small>
+            </div>
+
+            <div class="campo">
+              <label for="descripcion">Descripción <span class="opcional">(opcional)</span></label>
+              <input id="descripcion" name="descripcion" type="text" maxlength="80" placeholder="Ej. Supermercado" />
+              <small class="error" data-error="descripcion"></small>
+            </div>
+
+            <div class="campo">
+              <label for="fecha">Fecha</label>
+              <input id="fecha" name="fecha" type="date" />
+              <small class="error" data-error="fecha"></small>
+            </div>
+
+            <small class="error error--general" data-error="general" role="alert"></small>
+
+            <div class="acciones">
+              <button type="submit" id="btn-guardar" class="btn btn--primario">Agregar movimiento</button>
+              <button type="button" id="btn-cancelar" class="btn btn--texto" hidden>Cancelar edición</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel" aria-labelledby="lista-titulo">
+          <h2 id="lista-titulo">Movimientos <span id="contador" class="contador"></span></h2>
+
+          <div class="filtros">
+            <input id="filtro-busqueda" class="filtros__busqueda" type="search" placeholder="Buscar por descripción o categoría" aria-label="Buscar movimientos" />
+            <select id="filtro-tipo" aria-label="Filtrar por tipo">
+              <option value="todos">Todos los tipos</option>
+              <option value="ingreso">Ingresos</option>
+              <option value="gasto">Gastos</option>
+            </select>
+            <select id="filtro-categoria" aria-label="Filtrar por categoría"></select>
+            <div class="campo campo--inline">
+              <label for="filtro-desde">Desde</label>
+              <input id="filtro-desde" type="date" />
+            </div>
+            <div class="campo campo--inline">
+              <label for="filtro-hasta">Hasta</label>
+              <input id="filtro-hasta" type="date" />
+            </div>
+            <button type="button" id="btn-limpiar" class="btn btn--texto filtros__limpiar">Limpiar filtros</button>
+          </div>
+
+          <div class="tabla-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th><th>Detalle</th><th>Categoría</th>
+                  <th class="num">Monto</th><th><span class="sr-only">Acciones</span></th>
+                </tr>
+              </thead>
+              <tbody id="lista-movimientos"></tbody>
+            </table>
+          </div>
+          <p id="vacio" class="vacio" hidden></p>
+        </section>
+      </div>
+
+      <!-- ===== Presupuestos ===== -->
+      <div id="panel-presupuestos" role="tabpanel" aria-labelledby="tab-presupuestos" class="layout" hidden>
+        <section class="panel panel--form" aria-labelledby="pres-titulo">
+          <h2 id="pres-titulo">Nuevo presupuesto</h2>
+          <p class="ayuda">Define cuánto quieres gastar como máximo cada mes en una categoría.</p>
+          <form id="form-presupuesto" novalidate>
+            <div class="campo">
+              <label for="pres-categoria">Categoría</label>
+              <select id="pres-categoria"></select>
+              <small class="error" data-error="categoria"></small>
+            </div>
+            <div class="campo">
+              <label for="pres-limite">Límite mensual (USD)</label>
+              <input id="pres-limite" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0.00" />
+              <small class="error" data-error="limite"></small>
+            </div>
+            <div class="acciones">
+              <button type="submit" id="btn-pres-guardar" class="btn btn--primario">Agregar presupuesto</button>
+              <button type="button" id="btn-pres-cancelar" class="btn btn--texto" hidden>Cancelar edición</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel" aria-labelledby="pres-lista-titulo">
+          <div class="panel__cabecera">
+            <h2 id="pres-lista-titulo">Progreso del mes</h2>
+            <div class="campo campo--inline">
+              <label for="pres-mes">Mes</label>
+              <input id="pres-mes" type="month" />
+            </div>
+          </div>
+          <div id="pres-lista" class="presupuestos"></div>
+          <p id="pres-vacio" class="vacio" hidden>Aún no hay presupuestos. Crea el primero en el formulario.</p>
+        </section>
+      </div>
+
+      <!-- ===== Resumen mensual ===== -->
+      <div id="panel-resumen" role="tabpanel" aria-labelledby="tab-resumen" hidden>
+        <section class="panel controles" aria-label="Selección de meses">
+          <div class="campo campo--inline">
+            <label for="mes-a">Mes principal</label>
+            <input id="mes-a" type="month" />
+          </div>
+          <div class="campo campo--inline">
+            <label for="mes-b">Comparar con</label>
+            <input id="mes-b" type="month" />
+          </div>
+          <button type="button" id="btn-pdf" class="btn btn--primario btn--auto">Exportar reporte PDF</button>
+        </section>
+
+        <div id="stats" class="stats"></div>
+
+        <section class="panel" aria-labelledby="grafico-titulo">
+          <h2 id="grafico-titulo">Gastos por categoría</h2>
+          <div id="grafico"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="comp-titulo">
+          <h2 id="comp-titulo">Comparación de meses</h2>
+          <div id="comparacion" class="tabla-wrap"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <dialog id="dlg-confirmar" aria-labelledby="dlg-titulo">
+    <form method="dialog">
+      <h3 id="dlg-titulo">Confirmar</h3>
+      <p id="dlg-mensaje"></p>
+      <div class="acciones acciones--derecha">
+        <button value="cancelar" class="btn btn--texto">Cancelar</button>
+        <button value="ok" id="dlg-ok" class="btn btn--peligro">Eliminar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
